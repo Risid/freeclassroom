@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>太原理工大学空闲教室查询</title>
+    <script src="./jquery.min.js"></script>
+</head>
+
+<body>
+
+    <h1>太原理工大学空闲教室查询</h1>
+    <p>
+        <select name="campusSelect" id="campus">
+            <option value="08">明向校区</option>
+            <option value="01">迎西校区</option>
+            <option value="02">虎峪校区</option>
+        </select>
+        <select name="building" id="building">
+
+        </select>
+    </p>
+
+
+
+    <p>
+        <select name="week" id="week">
+
+        </select>
+
+        <select name="dayofweek" id="dayofweek">
+
+        </select>
+
+        <select name="timeCase" id="timeCase">
+
+
+        </select>
+    </p>
+
+
+
+    <p>
+        <input type="checkbox" id="special" checked>忽略非多媒体教室
+
+        <button id="query">查询</button>
+    </p>
+    <table border="1">
+        <thead>
+            <td>教学楼</td>
+            <td>容量</td>
+            <td>属性</td>
+            <td>空课时间</td>
+            <td>空课长度</td>
+        </thead>
+        <tbody id="list">
+
+        </tbody>
+    </table>
+
+
+
+
+</body>
+<script>
+
+    var campus = new Object()
+    var that = this
+    var campusIdTmp = ""
+    var weekTmp = ""
+    var tmp = new Object()
+    var info = new Object()
+    // $("#week").change(function () {
+    //     week = $("#week").val()
+    // })
+    function setBuildingValue() {
+        campusId = $("#campus").val()
+        var buildings = campus[campusId]
+        $("#building").empty()
+        for (var buildingId in buildings) {
+            $("#building").append("<option value=\"" + buildingId + "\">" + buildings[buildingId] + "</option>")
+        }
+
+    }
+
+
+
+
+    $("#query").click(function () {
+        if (campusIdTmp === $("#campus").val() && weekTmp === $("#week").val()) {
+            // console.log("tmp!")
+            showData()
+        } else {
+            campusIdTmp = $("#campus").val()
+            weekTmp = $("#week").val()
+            $.get("./" + $("#campus").val() + "/" + $("#week").val() + ".json", function (data, status) {
+                that.tmp = data
+                showData()
+                // console.log(that)
+            });
+        }
+
+    })
+
+    function showData() {
+        var b = $("#building").val()
+        var w = parseInt($("#dayofweek").val())
+        var c = parseInt($("#timeCase").val()) - 1
+        var arr = tmp.b[b]
+        var arrSize = arr.length
+        var count = 0
+        var tableStr = ""
+        var freeRoomArr = new Array()
+        while (count < arrSize) {
+            var attr = arr[count]
+            // console.log(attr)
+            var name = attr[0]
+            var size = attr[1]
+            var type = attr[2]
+            var length = 0
+
+            var dayofweekData = arr[count + w + 1]
+            // console.log(dayofweekData)
+            var freeArr = new Array()
+            var index = -1
+            for (var i = 0; i < dayofweekData.length; i++) {
+                if (dayofweekData[i] >= c &&
+                    ((freeArr.length == 0) || (freeArr[index] + 1 === dayofweekData[i]))) {
+                    freeArr.push(dayofweekData[i])
+                    index++
+                }
+            }
+            if (freeArr.length != 0) {
+                var fa = $("#special").prop('checked')
+                if (!($("#special").prop('checked') && type != 0)) {
+                    length = freeArr.length
+                    var start = freeArr[0]
+                    var end = freeArr[length - 1]
+
+                    var td = new Object()
+                    td.name = name
+                    td.size = size
+                    td.type = type
+                    td.length = length
+                    if (start == end) {
+                        td.time = "第" + (start + 1) + "小节"
+                    } else {
+                        td.time = "第" + (start + 1) + "小节到第" + (end + 1) + "小节"
+                    }
+                    freeRoomArr.push(td)
+                }
+
+
+            }
+
+
+            count += 8
+        }
+        freeRoomArr.sort(function (a, b) {
+            return a.length < b.length
+        })
+
+        // console.log(that.campus)
+        $("#list").empty()
+        for (var i = 0; i < freeRoomArr.length; i++) {
+            $("#list").append(buildTD(that.campus[$("#campus").val()][b] + freeRoomArr[i].name, freeRoomArr[i].size, that.info.t[freeRoomArr[i].type], freeRoomArr[i].time, freeRoomArr[i].length))
+        }
+
+
+
+    }
+
+    function buildTD(building, size, type, time, length) {
+        return "<tr><td>" + building + "</td><td>" + size + "</td><td>" + type + "</td><td>" + time + "</td><td>" + length + "</td></tr>"
+    }
+
+
+    $("#campus").change(function () {
+        setBuildingValue()
+    })
+    var dayofweek = ["日", "一", "二", "三", "四", "五", "六"]
+    for (var i = 1; i <= 24; i++) {
+        $("#week").append("<option value=\"" + i + "\">" + "第" + i + "周" + "</option>")
+    }
+
+
+
+    for (var i = 0; i < 7; i++) {
+        $("#dayofweek").append("<option value=\"" + i + "\">" + "星期" + dayofweek[i] + "</option>")
+    }
+
+
+
+    for (var i = 1; i <= 11; i++) {
+        $("#timeCase").append("<option value=\"" + i + "\">" + "第" + i + "小节" + "</option>")
+    }
+
+
+    $.get("./main.json", function (data, status) {
+        getWeek(data.s)
+        that.info = data
+        that.campus = data.c
+        setBuildingValue()
+    });
+
+
+    function getWeek(time) {
+        var timestamp = new Date()
+        // 学期开始时间
+        var startTime = time
+        var diff = Math.ceil((timestamp.getTime() / 1000 - startTime) / (60 * 60 * 24 * 7))
+        // console.log(diff)
+        $("#week").val(diff)
+        $("#dayofweek").val(timestamp.getDay())
+        // console.log(timestamp.getHours())
+        var hour = timestamp.getHours()
+        var nextDay = timestamp.getDay() + 1
+        nextDay = nextDay == 7 ? 0 : nextDay
+        if (hour > 21) {
+            $("#dayofweek").val(nextDay)
+            return
+        }
+        if (hour >= 17) {
+            $("#timeCase").val(9)
+            return
+        }
+        if (hour >= 11) {
+            $("#timeCase").val(5)
+            return
+        }
+
+    }
+
+
+
+
+</script>
+
+</html>
