@@ -242,7 +242,7 @@
         // console.log(that.campus)
         $("#list").empty()
         for (var i = 0; i < freeRoomArr.length; i++) {
-            $("#list").append(buildTD(that.campus[$("#campus").val()][b] + freeRoomArr[i].name, freeRoomArr[i].size, that.info.t[freeRoomArr[i].type], freeRoomArr[i].time, freeRoomArr[i].weight))
+            $("#list").append(buildTD(that.campus[$("#campus").val()][b] + freeRoomArr[i].name, freeRoomArr[i].size, that.info.t[freeRoomArr[i].type], freeRoomArr[i].time, freeRoomArr[i].length))
         }
     }
 
